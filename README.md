@@ -20,3 +20,4 @@ My experiment to learn more functional programming and other cool programming st
 - Match
 - Pipe
 - Map
+- From, To (converters, userAtom.to('option'))
