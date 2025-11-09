@@ -1,4 +1,4 @@
-# slang
+# Slang
 
 Functional programming library for TypeScript.
 
@@ -6,18 +6,22 @@ My experiment to learn more functional programming and other cool programming st
 
 ## API
 
-- Result (Ok, Err)
-- Maybe
-- andThen
-- Option
-- Atom
-- Expect
-- Panic!
-- Unwrap
-- Zip, Unzip
-- Try
-- Catch
-- Match
-- Pipe
-- Map
-- From, To (converters, userAtom.to('option'))
+- [x] Result (Ok, Err)
+- [x] Maybe (Option)
+- [ ] andThen
+- [x] Atom
+- [ ] Expect
+- [ ] Panic!
+- [ ] Unwrap
+- [ ] Zip, Unzip
+- [ ] Try
+- [ ] Catch
+- [x] Match
+- [x] MatchAll
+- [ ] Pipe
+- [ ] Map
+- [ ] From, To (converters, e.g. `userAtom.to('option')`)
+- [ ] Promises and async utilities
+- [ ] Curry
+
+See [Examples](./example.ts) for usage of currently implemented methods.
