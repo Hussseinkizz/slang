@@ -2,6 +2,12 @@ export const println = (...args: unknown[]): void => {
   (globalThis as any)?.console?.log?.(...args);
 };
 
+/**
+ * Converts between Slang types.
+ * - `option`: Wraps primitive or symbol description into `Option`
+ * - `atom`: Converts `Some<string>` to `Atom` or returns symbol Atom
+ * - `result`: Wraps values into `Ok`, `None` into `Err`
+ */
 export function _to<T>(value: Option<T>, target: "option"): Option<T>;
 export function _to<T extends string>(value: Option<T>, target: "atom"): Atom<T>;
 export function _to<T extends string>(value: Atom<T>, target: "option"): Option<string>;
@@ -64,17 +70,35 @@ export type Atom<T extends string = string> = symbol & {
  * const a = atom("loading");
  * typeof a; // Atom<"loading">
  */
+/**
+ * Creates a new, unique atom (non-interned)
+ * @param name Name of the atom (used for hover/description)
+ * @returns `Atom<T>` with chainable `to()`
+ * @example
+ * const ready = atom("ready");
+ * ready.to("option"); // Some("ready")
+ * ready.to("result"); // Ok("ready")
+ */
+/** Methods available on an Atom */
+export interface AtomMethods<T extends string> {
+  /** Returns the same atom */
+  to(target: "atom"): Atom<T>;
+  /** Returns `Option<string>` using the atom description
+   * @example atom("ready").to("option") // Some("ready")
+   */
+  to(target: "option"): Option<string>;
+  /** Returns `Ok<string>` using the atom description
+   * @example atom("ready").to("result") // Ok("ready")
+   */
+  to(target: "result"): Result<string, string>;
+}
+
 export function atom<const T extends string>(name: T) {
   const s = Symbol(name);
   const boxed = Object(s) as any;
-  type ToFromAtom = {
-    (target: "atom"): Atom<T>;
-    (target: "option"): Option<string>;
-    (target: "result"): Result<string, string>;
-  };
-  // attach methods on the boxed symbol object
-  boxed.to = ((target: "atom" | "option" | "result") => (_to as any)(s, target)) as ToFromAtom;
-  return boxed as Atom<T> & { to: ToFromAtom };
+  const to: AtomMethods<T>["to"] = ((target: "atom" | "option" | "result") => (_to as any)(s, target)) as any;
+  boxed.to = to;
+  return boxed as Atom<T> & AtomMethods<T>;
 }
 
 // branding symbol
@@ -98,7 +122,7 @@ export type Err<E> = {
 };
 
 // discriminated union: mutually exclusive
-export type Result<T, E> = Ok<T> | Err<E>;
+export type Result<T, E> = (Ok<T> | Err<E>) & ResultMethods<T>;
 
 /**
  * Creates a new, successful result
@@ -107,13 +131,28 @@ export type Result<T, E> = Ok<T> | Err<E>;
  * const a = Ok("hello");
  * typeof a; // Ok<"hello">
  */
-export function Ok<T>(value: T): Ok<T> {
-  return Object.freeze({
+/** Methods available on a Result */
+export interface ResultMethods<T> {
+  /** Unwraps the value, throwing for Err
+   * @example maybeFail().expect("must succeed")
+   */
+  expect(msg?: string): T;
+}
+
+/** Creates a new, successful result */
+export function Ok<T>(value: T): Ok<T> & ResultMethods<T> {
+  const ok = Object.freeze({
     type: "Ok",
     value,
     isOk: true,
     isErr: false,
   } as Ok<T>);
+  const withMethods = {
+    ...(ok as Ok<T>),
+    /** Unwraps the value (always succeeds for Ok) */
+    expect: ((msg?: string) => (ok as Ok<T>).value) as (msg?: string) => T,
+  };
+  return withMethods as Ok<T> & ResultMethods<T>;
 }
 
 /**
@@ -123,13 +162,31 @@ export function Ok<T>(value: T): Ok<T> {
  * const a = Err("error");
  * typeof a; // Err<"error">
  */
-export function Err<E>(error: E): Err<E> {
-  return Object.freeze({
+/** Creates a new, failed result */
+export function Err<E>(error: E): Err<E> & ResultMethods<never> {
+  const err = Object.freeze({
     type: "Err",
     error,
     isOk: false,
     isErr: true,
   } as Err<E>);
+  const formatError = (e: any, fallback?: string) => {
+    if (typeof e === "string") return e;
+    if (e && typeof e === "object" && "message" in e) return String((e as any).message);
+    return fallback ?? String(e);
+  };
+  const withMethods = {
+    ...(err as Err<E>),
+    /**
+     * Throws with the provided message or formatted error.
+     * @example
+     * maybeFail().expect("must succeed"); // throws if Err
+     */
+    expect: ((msg?: string) => {
+      throw new Error(msg ?? formatError((err as Err<E>).error, "Expected Ok, got Err"));
+    }) as (msg?: string) => never,
+  };
+  return withMethods as Err<E> & ResultMethods<never>;
 }
 
 declare const __option__: unique symbol;
@@ -208,18 +265,47 @@ const None: None = Object.freeze({
  * const g = option(false);
  * typeof g; // Some<boolean>
  */
+/** Methods available on an Option */
+export interface OptionMethods<T> {
+  /** Returns the same option */
+  to(target: "option"): Option<T>;
+  /** Converts `Some<string>` to `Atom<string>`; throws for `None` or non-string */
+  to(target: "atom"): Atom<T & string>;
+  /** Converts to `Result<T, string>`; `None` becomes `Err("Value is None")` */
+  to(target: "result"): Result<T | (T extends string ? never : Atom<string>), string>;
+  /**
+   * Unwraps the option, throwing if `None`.
+   * @throws Error with provided message or default.
+   * @example
+   * option(42).expect(); // 42
+   * option("").expect("must be present"); // throws
+   */
+  expect(msg?: string): T;
+}
+
+/**
+ * Creates a new option type from a value.
+ * - Truthy values become `Some<T>`; `null|undefined|""` become `None`.
+ * - Provides chainable `.to()` and `.expect()` helpers.
+ * @example
+ * option("hi").expect(); // "hi"
+ * option("").expect("cannot be empty"); // throws Error("cannot be empty")
+ * option("state").to("atom"); // Atom<"state">
+ * option(null).to("result"); // Err("Value is None")
+ */
 export function option<T>(value: T | NonTruthy) {
   const opt = isFalsy(value) ? None : Some(value as T);
-  type ToFromOption = {
-    (target: "option"): Option<T>;
-    (target: "atom"): Atom<T & string>;
-    (target: "result"): Result<T | (T extends string ? never : Atom<string>), string>;
-  };
-  const withTo = {
+  const to: OptionMethods<T>["to"] = ((target: "atom" | "option" | "result") => (_to as any)(opt, target)) as any;
+  const expect: OptionMethods<T>["expect"] = ((msg?: string) => {
+    if ((opt as Option<T>).isSome) return (opt as Some<T>).value;
+    throw new Error(msg ?? "Expected Some, got None");
+  }) as any;
+  const withMethods = {
     ...(opt as Option<T>),
-    to: ((target: "atom" | "option" | "result") => (_to as any)(opt, target)) as ToFromOption,
+    to,
+    expect,
   };
-  return withTo as Option<T> & { to: ToFromOption };
+  return withMethods as Option<T> & OptionMethods<T>;
 }
 
 /**

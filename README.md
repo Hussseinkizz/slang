@@ -10,9 +10,9 @@ My experiment to learn more functional programming and other cool programming st
 - [x] Maybe (Option)
 - [ ] andThen
 - [x] Atom
-- [ ] Expect
+- [x] Expect
+- [ ] Else
 - [ ] Panic!
-- [ ] Unwrap
 - [ ] Zip, Unzip
 - [ ] Try
 - [ ] Catch

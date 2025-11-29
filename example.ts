@@ -112,3 +112,15 @@ println("new atom", newValue2);
 
 const newValue3 = option(null).to("result");
 println("new result", newValue3);
+
+const personAge = option(25).expect("a person must have age!");
+println("person age", personAge);
+
+// const personAge2 = option("").expect("a person must have age!");
+// println("We never reach here, we crashed!");
+
+// const examResults = maybeFail().expect(
+//   "should pass exams first to get promoted!",
+// );
+
+// println("exams passed", examResults);
