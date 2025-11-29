@@ -103,3 +103,12 @@ matchAll("yay", {
   bar: () => println("Foo!"),
   _: () => println("Unknown for real"),
 });
+
+const newValue = atom("something").to("option");
+println("new option", newValue);
+
+const newValue2 = option("that").to("atom");
+println("new atom", newValue2);
+
+const newValue3 = option(null).to("result");
+println("new result", newValue3);

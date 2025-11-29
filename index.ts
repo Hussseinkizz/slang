@@ -1,6 +1,53 @@
-export const println: typeof console.log = (...args) => {
-  console.log(...args);
+export const println = (...args: unknown[]): void => {
+  (globalThis as any)?.console?.log?.(...args);
 };
+
+export function _to<T>(value: Option<T>, target: "option"): Option<T>;
+export function _to<T extends string>(value: Option<T>, target: "atom"): Atom<T>;
+export function _to<T extends string>(value: Atom<T>, target: "option"): Option<string>;
+export function _to<T extends string>(value: Atom<T>, target: "atom"): Atom<T>;
+export function _to<T, E = string>(value: Option<T>, target: "result"): Result<T, E>;
+export function _to<E = string>(value: Atom<any>, target: "result"): Result<string, E>;
+
+export function _to(value: any, target: "option" | "atom" | "result"): any {
+  const isOption = (v: any): v is Option<any> =>
+    v != null && typeof v === "object" && "isSome" in v && "isNone" in v;
+
+  if (value && (value.type === "Ok" || value.type === "Err")) {
+    throw new Error("Cannot convert a Result to any other type");
+  }
+
+  switch (target) {
+    case "option": {
+      if (isOption(value)) return value;
+      if (typeof value === "symbol") return option(value.description);
+      return option(value);
+    }
+
+    case "atom": {
+      if (isOption(value)) {
+        if (value.isNone) throw new Error("Cannot convert None to Atom");
+        if (typeof (value as Some<any>).value !== "string") {
+          throw new Error("Only string values can be converted to Atom");
+        }
+        return atom((value as Some<string>).value);
+      }
+      if (typeof value === "symbol") return value;
+      throw new Error(`Cannot convert type ${typeof value} to Atom`);
+    }
+
+    case "result": {
+      if (isOption(value)) {
+        return value.isSome ? Ok(value.value) : Err("Value is None");
+      }
+      if (typeof value === "symbol") return Ok(value.description);
+      return Ok(value);
+    }
+
+    default:
+      throw new Error(`Invalid target: ${target}`);
+  }
+}
 
 /** Unique symbol to brand atoms */
 declare const __atom__: unique symbol;
@@ -17,8 +64,17 @@ export type Atom<T extends string = string> = symbol & {
  * const a = atom("loading");
  * typeof a; // Atom<"loading">
  */
-export function atom<const T extends string>(name: T): Atom<T> {
-  return Symbol(name) as Atom<T>;
+export function atom<const T extends string>(name: T) {
+  const s = Symbol(name);
+  const boxed = Object(s) as any;
+  type ToFromAtom = {
+    (target: "atom"): Atom<T>;
+    (target: "option"): Option<string>;
+    (target: "result"): Result<string, string>;
+  };
+  // attach methods on the boxed symbol object
+  boxed.to = ((target: "atom" | "option" | "result") => (_to as any)(s, target)) as ToFromAtom;
+  return boxed as Atom<T> & { to: ToFromAtom };
 }
 
 // branding symbol
@@ -95,7 +151,7 @@ export type None = {
 
 export type Option<T> = Some<T> | None;
 
-export type NonTruthy = null | undefined | "" | typeof NaN | typeof Infinity;
+export type NonTruthy = null | undefined | "";
 
 const isFalsy = (value: any) => {
   return (
@@ -152,8 +208,18 @@ const None: None = Object.freeze({
  * const g = option(false);
  * typeof g; // Some<boolean>
  */
-export function option<T>(value: T | NonTruthy): Option<T> {
-  return isFalsy(value) ? None : Some(value as T);
+export function option<T>(value: T | NonTruthy) {
+  const opt = isFalsy(value) ? None : Some(value as T);
+  type ToFromOption = {
+    (target: "option"): Option<T>;
+    (target: "atom"): Atom<T & string>;
+    (target: "result"): Result<T | (T extends string ? never : Atom<string>), string>;
+  };
+  const withTo = {
+    ...(opt as Option<T>),
+    to: ((target: "atom" | "option" | "result") => (_to as any)(opt, target)) as ToFromOption,
+  };
+  return withTo as Option<T> & { to: ToFromOption };
 }
 
 /**
@@ -235,14 +301,16 @@ export function matchAll<T extends MatchKey | boolean, R>(
   value: T,
   patterns: MatchPatterns<T, R>,
 ): R {
-  if (!runtimeMatchKeyCheck(value)) {
-    throw new Error(`Unsupported match all value type: ${typeof value}`);
+  // For Atom, we use description for semantic matching
+  const unbox = (v: any) => (typeof v?.valueOf === "function" ? v.valueOf() : v);
+  const getSymbol = (v: any) => (typeof v === "symbol" ? v.description : undefined);
+  const raw = unbox(value);
+
+  if (!runtimeMatchKeyCheck(raw)) {
+    throw new Error(`Unsupported match all value type: ${typeof raw}`);
   }
 
-  // For Atom, we use description for semantic matching
-  const getSymbol = (value: any) =>
-    typeof value === "symbol" ? value.description : undefined;
-  const key = getSymbol(value) ?? value;
+  const key = getSymbol(raw) ?? raw;
 
   const normalizedKey =
     typeof key === "boolean" || typeof key === "number" ? String(key) : key;

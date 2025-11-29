@@ -20,7 +20,7 @@ My experiment to learn more functional programming and other cool programming st
 - [x] MatchAll
 - [ ] Pipe
 - [ ] Map
-- [ ] From, To (converters, e.g. `userAtom.to('option')`)
+- [x] To (converters, e.g. `userAtom.to('option')`)
 - [ ] Promises and async utilities
 - [ ] Curry
 
