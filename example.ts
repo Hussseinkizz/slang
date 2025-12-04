@@ -124,3 +124,23 @@ println("person age", personAge);
 // );
 
 // println("exams passed", examResults);
+
+const hybridScore = maybeEmpty();
+
+const selectedKind = hybridScore.unwrap().else(1);
+println("selectedKind:", selectedKind);
+
+if (selectedKind === 1) {
+  println("Human!");
+} else {
+  println("Hybrid!");
+}
+
+const boolMaybe = option(false);
+const safeBool = boolMaybe.unwrap().else(() => true);
+println("safeBool", safeBool);
+
+// const nothing = option(null).unwrap(); // throws error because no else chained
+// println("nothing", nothing);
+const something = option(20).unwrap(); // doesn't throw because option is truthy
+println("something", something); // 20

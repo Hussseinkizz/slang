@@ -2,6 +2,15 @@ export const println = (...args: unknown[]): void => {
   (globalThis as any)?.console?.log?.(...args);
 };
 
+/** Schedules a microtask; falls back to Promise if unavailable */
+const scheduleMicrotask = (fn: () => void) => {
+  const qmt = (globalThis as any)?.queueMicrotask as (
+    cb: () => void,
+  ) => void | undefined;
+  if (typeof qmt === "function") qmt(fn);
+  else Promise.resolve().then(fn);
+};
+
 /**
  * Converts between Slang types.
  * - `option`: Wraps primitive or symbol description into `Option`
@@ -9,11 +18,23 @@ export const println = (...args: unknown[]): void => {
  * - `result`: Wraps values into `Ok`, `None` into `Err`
  */
 export function _to<T>(value: Option<T>, target: "option"): Option<T>;
-export function _to<T extends string>(value: Option<T>, target: "atom"): Atom<T>;
-export function _to<T extends string>(value: Atom<T>, target: "option"): Option<string>;
+export function _to<T extends string>(
+  value: Option<T>,
+  target: "atom",
+): Atom<T>;
+export function _to<T extends string>(
+  value: Atom<T>,
+  target: "option",
+): Option<string>;
 export function _to<T extends string>(value: Atom<T>, target: "atom"): Atom<T>;
-export function _to<T, E = string>(value: Option<T>, target: "result"): Result<T, E>;
-export function _to<E = string>(value: Atom<any>, target: "result"): Result<string, E>;
+export function _to<T, E = string>(
+  value: Option<T>,
+  target: "result",
+): Result<T, E>;
+export function _to<E = string>(
+  value: Atom<any>,
+  target: "result",
+): Result<string, E>;
 
 export function _to(value: any, target: "option" | "atom" | "result"): any {
   const isOption = (v: any): v is Option<any> =>
@@ -96,7 +117,8 @@ export interface AtomMethods<T extends string> {
 export function atom<const T extends string>(name: T) {
   const s = Symbol(name);
   const boxed = Object(s) as any;
-  const to: AtomMethods<T>["to"] = ((target: "atom" | "option" | "result") => (_to as any)(s, target)) as any;
+  const to: AtomMethods<T>["to"] = ((target: "atom" | "option" | "result") =>
+    (_to as any)(s, target)) as any;
   boxed.to = to;
   return boxed as Atom<T> & AtomMethods<T>;
 }
@@ -137,6 +159,17 @@ export interface ResultMethods<T> {
    * @example maybeFail().expect("must succeed")
    */
   expect(msg?: string): T;
+  /** Returns an unwrap chain that throws if no else is provided
+   * Use `.else(valueOrFn)` to supply a fallback for Err.
+   * - If `Ok`, `.else(...)` returns the inner value and ignores fallback.
+   * - If `Err`, `.else(...)` returns the fallback; if a function, it receives the error.
+   */
+  unwrap(): {
+    /** Fallback value or function to recover from Err
+     * If a function is provided, it is called with the Err's error.
+     * Returns the unwrapped value (Ok) or the provided fallback (Err).
+     */ else(fallback: T | ((error: any) => T)): T;
+  };
 }
 
 /** Creates a new, successful result */
@@ -151,6 +184,20 @@ export function Ok<T>(value: T): Ok<T> & ResultMethods<T> {
     ...(ok as Ok<T>),
     /** Unwraps the value (always succeeds for Ok) */
     expect: ((msg?: string) => (ok as Ok<T>).value) as (msg?: string) => T,
+    /** Returns chain; else ignored because Ok */
+    unwrap: (() => {
+      let handled = false;
+      scheduleMicrotask(() => {
+        // Ok never throws; microtask exists for symmetry
+        handled;
+      });
+      return {
+        else(fallback: T | (() => T)) {
+          handled = true;
+          return (ok as Ok<T>).value;
+        },
+      };
+    }) as () => { else(fallback: T | (() => T)): T },
   };
   return withMethods as Ok<T> & ResultMethods<T>;
 }
@@ -172,7 +219,8 @@ export function Err<E>(error: E): Err<E> & ResultMethods<never> {
   } as Err<E>);
   const formatError = (e: any, fallback?: string) => {
     if (typeof e === "string") return e;
-    if (e && typeof e === "object" && "message" in e) return String((e as any).message);
+    if (e && typeof e === "object" && "message" in e)
+      return String((e as any).message);
     return fallback ?? String(e);
   };
   const withMethods = {
@@ -183,8 +231,32 @@ export function Err<E>(error: E): Err<E> & ResultMethods<never> {
      * maybeFail().expect("must succeed"); // throws if Err
      */
     expect: ((msg?: string) => {
-      throw new Error(msg ?? formatError((err as Err<E>).error, "Expected Ok, got Err"));
+      throw new Error(
+        msg ?? formatError((err as Err<E>).error, "Expected Ok, got Err"),
+      );
     }) as (msg?: string) => never,
+    /** Chainable unwrap with microtask throw if not handled */
+    unwrap: (() => {
+      let handled = false;
+      scheduleMicrotask(() => {
+        if (!handled) {
+          const message = formatError(
+            (err as Err<E>).error,
+            "Expected Ok, got Err",
+          );
+          throw new Error(message);
+        }
+      });
+      return {
+        else<T>(fallback: T | ((error: E) => T)): T {
+          handled = true;
+          if (typeof fallback === "function") {
+            return (fallback as (error: E) => T)((err as Err<E>).error);
+          }
+          return fallback as T;
+        },
+      };
+    }) as () => { else<T>(fallback: T | ((error: E) => T)): T },
   };
   return withMethods as Err<E> & ResultMethods<never>;
 }
@@ -206,7 +278,7 @@ export type None = {
   readonly [__option__]: true;
 };
 
-export type Option<T> = Some<T> | None;
+export type Option<T> = (Some<T> | None) & OptionMethods<T>;
 
 export type NonTruthy = null | undefined | "";
 
@@ -272,7 +344,9 @@ export interface OptionMethods<T> {
   /** Converts `Some<string>` to `Atom<string>`; throws for `None` or non-string */
   to(target: "atom"): Atom<T & string>;
   /** Converts to `Result<T, string>`; `None` becomes `Err("Value is None")` */
-  to(target: "result"): Result<T | (T extends string ? never : Atom<string>), string>;
+  to(
+    target: "result",
+  ): Result<T | (T extends string ? never : Atom<string>), string>;
   /**
    * Unwraps the option, throwing if `None`.
    * @throws Error with provided message or default.
@@ -281,6 +355,17 @@ export interface OptionMethods<T> {
    * option("").expect("must be present"); // throws
    */
   expect(msg?: string): T;
+  /** Returns an unwrap chain that throws if no else is provided
+   * Use `.else(valueOrFn)` to supply a fallback for None.
+   * - If `Some`, `.else(...)` returns the inner value and ignores fallback.
+   * - If `None`, `.else(...)` returns the fallback; if a function, it is called without arguments.
+   */
+  unwrap(): {
+    /** Fallback value or function to recover from None
+     * If a function is provided, it is invoked to produce the fallback.
+     * Returns the unwrapped value (Some) or the provided fallback (None).
+     */ else(fallback: T | (() => T)): T;
+  };
 }
 
 /**
@@ -295,15 +380,39 @@ export interface OptionMethods<T> {
  */
 export function option<T>(value: T | NonTruthy) {
   const opt = isFalsy(value) ? None : Some(value as T);
-  const to: OptionMethods<T>["to"] = ((target: "atom" | "option" | "result") => (_to as any)(opt, target)) as any;
+  const to: OptionMethods<T>["to"] = ((target: "atom" | "option" | "result") =>
+    (_to as any)(opt, target)) as any;
   const expect: OptionMethods<T>["expect"] = ((msg?: string) => {
     if ((opt as Option<T>).isSome) return (opt as Some<T>).value;
     throw new Error(msg ?? "Expected Some, got None");
+  }) as any;
+  const unwrap: OptionMethods<T>["unwrap"] = (() => {
+    let handled = false;
+    const currentOption = opt as Option<T>;
+
+    if (currentOption.isNone) {
+      scheduleMicrotask(() => {
+        if (!handled) {
+          throw new Error("Expected Some, got None");
+        }
+      });
+    }
+
+    return {
+      else(fallback: T | (() => T)) {
+        handled = true;
+        if (currentOption.isSome) return (currentOption as Some<T>).value;
+        return typeof fallback === "function"
+          ? (fallback as () => T)()
+          : (fallback as T);
+      },
+    };
   }) as any;
   const withMethods = {
     ...(opt as Option<T>),
     to,
     expect,
+    unwrap,
   };
   return withMethods as Option<T> & OptionMethods<T>;
 }
@@ -388,8 +497,10 @@ export function matchAll<T extends MatchKey | boolean, R>(
   patterns: MatchPatterns<T, R>,
 ): R {
   // For Atom, we use description for semantic matching
-  const unbox = (v: any) => (typeof v?.valueOf === "function" ? v.valueOf() : v);
-  const getSymbol = (v: any) => (typeof v === "symbol" ? v.description : undefined);
+  const unbox = (v: any) =>
+    typeof v?.valueOf === "function" ? v.valueOf() : v;
+  const getSymbol = (v: any) =>
+    typeof v === "symbol" ? v.description : undefined;
   const raw = unbox(value);
 
   if (!runtimeMatchKeyCheck(raw)) {

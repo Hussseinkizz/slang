@@ -11,7 +11,8 @@ My experiment to learn more functional programming and other cool programming st
 - [ ] andThen
 - [x] Atom
 - [x] Expect
-- [ ] Else
+- [x] Unwrap -- pending
+- [x] Else -- pending
 - [ ] Panic!
 - [ ] Zip, Unzip
 - [ ] Try
@@ -23,5 +24,9 @@ My experiment to learn more functional programming and other cool programming st
 - [x] To (converters, e.g. `userAtom.to('option')`)
 - [ ] Promises and async utilities
 - [ ] Curry
+
+## Others
+
+- Pubsub store with state locks
 
 See [Examples](./example.ts) for usage of currently implemented methods.
