@@ -10,9 +10,9 @@ export function maybeFail(): Result<number, { type: string; message: string }> {
 
 export function maybeEmpty(): Option<number | NonTruthy> {
   if (Math.random() > 0.5) {
-    return option(1);
+    return option<number | NonTruthy>(1);
   } else {
-    return option(null);
+    return option<number | NonTruthy>(null);
   }
 }
 

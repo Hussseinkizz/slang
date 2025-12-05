@@ -2,8 +2,15 @@
   "name": "slang",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@vitest/ui": "^4.0.15",
+    "vitest": "^4.0.15"
   },
   "peerDependencies": {
     "typescript": "^5"

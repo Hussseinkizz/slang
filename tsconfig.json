@@ -26,5 +26,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["bun-build.ts", "dist"]
+  "exclude": ["bun-build.ts", "dist", "backup"]
 }
