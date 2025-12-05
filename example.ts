@@ -142,5 +142,5 @@ println("safeBool", safeBool);
 
 // const nothing = option(null).unwrap(); // throws error because no else chained
 // println("nothing", nothing);
-const something = option(20).unwrap(); // doesn't throw because option is truthy
+const something = option(20).unwrap().else(-1);
 println("something", something); // 20

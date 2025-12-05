@@ -355,16 +355,18 @@ export interface OptionMethods<T> {
    * option("").expect("must be present"); // throws
    */
   expect(msg?: string): T;
-  /** Returns an unwrap chain that throws if no else is provided
-   * Use `.else(valueOrFn)` to supply a fallback for None.
-   * - If `Some`, `.else(...)` returns the inner value and ignores fallback.
-   * - If `None`, `.else(...)` returns the fallback; if a function, it is called without arguments.
+  /** Returns an unwrap chain that MUST be completed with `.else(...)`.
+   * If `.else(...)` is not chained, an error is thrown ("Expected else").
+   * - If `Some`, `.else(...)` is required but ignored for outcome; returns the inner value.
+   * - If `None`, `.else(...)` provides fallback; if a function, it is called with `undefined`.
+   * - Fallback result must be truthy; otherwise, throws ("Fallback must be truthy").
    */
   unwrap(): {
-    /** Fallback value or function to recover from None
-     * If a function is provided, it is invoked to produce the fallback.
-     * Returns the unwrapped value (Some) or the provided fallback (None).
-     */ else(fallback: T | (() => T)): T;
+    /** Fallback value or transformer to recover from `None`.
+     * - Function form receives `undefined` and must return a truthy value.
+     * - Direct value must be truthy.
+     * Returns the inner value for `Some`, or the validated fallback for `None`.
+     */ else(fallback: T | ((value: T | undefined) => T)): T;
   };
 }
 
@@ -390,21 +392,30 @@ export function option<T>(value: T | NonTruthy) {
     let handled = false;
     const currentOption = opt as Option<T>;
 
-    if (currentOption.isNone) {
-      scheduleMicrotask(() => {
-        if (!handled) {
-          throw new Error("Expected Some, got None");
-        }
-      });
-    }
+    scheduleMicrotask(() => {
+      if (!handled) {
+        throw new Error("Expected else");
+      }
+    });
 
     return {
-      else(fallback: T | (() => T)) {
+      else(fallback: T | ((value: T | undefined) => T)) {
         handled = true;
+        // If Some, ignore else and return inner value
         if (currentOption.isSome) return (currentOption as Some<T>).value;
-        return typeof fallback === "function"
-          ? (fallback as () => T)()
-          : (fallback as T);
+
+        // None path: compute fallback result
+        const result =
+          typeof fallback === "function"
+            ? (fallback as (value: T | undefined) => T)(undefined)
+            : (fallback as T);
+
+        // Ensure fallback result is truthy using option()
+        const check = option(result as T);
+        if (check.isNone) {
+          throw new Error("Fallback must be truthy");
+        }
+        return result as T;
       },
     };
   }) as any;

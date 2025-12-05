@@ -11,8 +11,8 @@ My experiment to learn more functional programming and other cool programming st
 - [ ] andThen
 - [x] Atom
 - [x] Expect
-- [x] Unwrap -- pending
-- [x] Else -- pending
+- [x] Unwrap (on Option)
+- [x] Else (on unwrap)
 - [ ] Panic!
 - [ ] Zip, Unzip
 - [ ] Try
