@@ -296,6 +296,8 @@ println(unzip(zipped));
 // [[1, 2, 3], [4, 5, 6]]
 ```
 
+And more are to be implemented in coming versions...
+
 ## Code Samples
 
 See [example.ts](https://github.com/Hussseinkizz/slang/blob/main/example.ts) for usage of currently implemented methods.
