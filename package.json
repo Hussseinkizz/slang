@@ -1,12 +1,50 @@
 {
-  "name": "slang",
-  "module": "index.ts",
+  "name": "slang-ts",
+  "version": "0.0.1",
+  "description": "Functional programming library for TypeScript",
   "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "typecheck": "tsc --noEmit",
+    "build": "bun run test && bun run typecheck && bun run bun-build.ts && tsc -p tsconfig.build.json"
   },
+  "homepage": "https://github.com/Hussseinkizz/slang#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hussseinkizz/slang.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hussseinkizz/slang/issues"
+  },
+  "keywords": [
+    "functional",
+    "typescript",
+    "option",
+    "result",
+    "pattern-matching",
+    "monad",
+    "ts-pattern",
+    "defensive programming",
+    "fp-ts",
+    "ramda",
+    "rameda",
+    "neverthrow",
+    "lodash"
+  ],
+  "author": "Hussein Kizz",
+  "license": "MIT",
+  "sideEffects": false,
   "devDependencies": {
     "@types/bun": "latest",
     "@vitest/ui": "^4.0.15",
