@@ -14,7 +14,7 @@ My experiment to learn more functional programming and other cool programming st
 - [x] Unwrap (on Option)
 - [x] Else (on unwrap)
 - [ ] Panic!
-- [ ] Zip, Unzip
+- [x] Zip, Unzip, zipWith
 - [ ] Try
 - [ ] Catch
 - [x] Match

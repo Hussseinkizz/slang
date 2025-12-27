@@ -6,6 +6,9 @@ import {
   Ok,
   option,
   println,
+  unzip,
+  zip,
+  zipWith,
   type NonTruthy,
   type Option,
   type Result,
@@ -144,3 +147,35 @@ println("safeBool", safeBool);
 // println("nothing", nothing);
 const something = option(20).unwrap().else(-1);
 println("something", something); // 20
+
+// Zip arrays
+const arr1 = [1, 2, 3];
+const arr2 = [4, 5, 6];
+const arr3 = [7, 8, 9];
+println(zip([arr1, arr2, arr3]));
+// [[1,4,7],[2,5,8],[3,6,9]]
+
+// ZipWith function
+println(zipWith([arr1, arr2, arr3], (t) => t.reduce((sum, x) => sum + x, 0)));
+// [12,15,18]
+
+// Zip with fillValue
+println(zip([arr1, [10, 20]], { fillValue: 0 }));
+// [[1,10],[2,20],[3,0]]
+
+// Zip Sets with includeValues=true (same type: Set + Set)
+const s1 = new Set([10, 20, 30]);
+const s2 = new Set([100, 200, 300]);
+println(zip([s1, s2], { includeValues: true }));
+// [[10,100],[20,200],[30,300]]
+
+// Zip objects with includeValues=true (same type: Object + Object)
+const o1 = { a: 1, b: 2, c: 3 };
+const o2 = { x: 100, y: 200, z: 300 };
+println(zip([o1, o2], { includeValues: true }));
+// [[1,100],[2,200],[3,300]]
+
+// Unzip
+const zipped = zip([arr1, arr2]);
+println(unzip(zipped));
+// [[1,2,3],[4,5,6]]
