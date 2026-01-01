@@ -120,6 +120,16 @@ export interface AtomMethods<T extends string> {
   to(target: "result"): Result<string, string>;
 }
 
+/**
+ * Creates a new, unique atom (non-interned).
+ * - Atoms are symbols with additional methods for type-safe conversions.
+ * @param name - Name of the atom (used for hover/description).
+ * @returns `Atom<T>` with chainable `to()` method for conversions.
+ * @example
+ * const ready = atom("ready");
+ * ready.to("option"); // Some("ready")
+ * ready.to("result"); // Ok("ready")
+ */
 export function atom<const T extends string>(name: T) {
   const s = Symbol(name);
   const boxed = Object(s) as any;
