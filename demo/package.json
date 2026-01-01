@@ -9,6 +9,6 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "slang-ts": "^0.0.1"
+    "slang-ts": "^0.0.2"
   }
 }
