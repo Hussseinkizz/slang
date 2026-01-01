@@ -96,5 +96,6 @@ Always examine existing codebase patterns before implementing new solutions - us
 - Always avoid hacky ways around problems, avoid shortcuts and stubs and being lazy on tasks and taking just the easy way around, we working on production grade stuff, so we have to do real things as they should be, we don't skip stuff or instead of fundamentally fixing things and we just make shims, resolvers or quick ways that don't fix the root problem, in doubt where you think we may need to take the easy way, first ask.
 - Never rush to implementing or changing things while we still working, I have to approve first.
 - Never use git without my supervision, always ask me before any git commands.
+- Never install packages, package linking, publishing or project setup stuff, mono repo setting or stuff like so without my approval.
 
 Always remember these rules before working on any new tasks.

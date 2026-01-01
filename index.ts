@@ -435,18 +435,18 @@ export function option<T>(value: T | NonTruthy) {
  * `Result` or `Option`, TypeScript will infer that automatically.
  */
 export function match<T, E, R>(
-  value: Result<T, E>,
+  value: Result<T, E> | (Result<any, any> & ResultMethods<any>),
   patterns: {
-    Ok: (v: Ok<T>) => R;
-    Err: (e: Err<E>) => R;
+    Ok: ((v: Ok<T>) => R) | (() => R);
+    Err: ((e: Err<E>) => R) | (() => R);
   },
 ): R;
 
 export function match<T, R>(
-  value: Option<T>,
+  value: Some<T> | None,
   patterns: {
-    Some: (v: Some<T>) => R;
-    None: (v: None) => R;
+    Some: ((v: Some<T>) => R) | (() => R);
+    None: ((v: None) => R) | (() => R);
   },
 ): R;
 

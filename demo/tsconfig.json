@@ -25,6 +25,5 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  },
-  "exclude": ["bun-build.ts", "dist", "backup", "demo", "test-*.ts", "*-test.ts", "comprehensive-*.ts", "simple-*.ts"]
+  }
 }

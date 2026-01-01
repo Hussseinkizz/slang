@@ -1,0 +1,14 @@
+{
+  "name": "demo",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "slang-ts": "^0.0.1"
+  }
+}
