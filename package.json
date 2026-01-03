@@ -1,6 +1,6 @@
 {
   "name": "slang-ts",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Functional programming library for TypeScript",
   "type": "module",
   "main": "dist/index.js",

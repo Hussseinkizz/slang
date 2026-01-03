@@ -6,6 +6,7 @@ import {
   Ok,
   option,
   println,
+  safeTry,
   unzip,
   zip,
   zipWith,
@@ -179,3 +180,48 @@ println(zip([o1, o2], { includeValues: true }));
 const zipped = zip([arr1, arr2]);
 println(unzip(zipped));
 // [[1,2,3],[4,5,6]]
+
+// SafeTry
+println("\n=== SafeTry Examples ===");
+const greetResult = await safeTry(() => "Hello, Slang!");
+println("Result:", greetResult.result);
+println("Error:", greetResult.error);
+
+const divideResult = await safeTry(() => {
+  const num = 10;
+  const denom = 0;
+  if (denom === 0) throw new Error("Cannot divide by zero");
+  return num / denom;
+});
+println("Divide Result:", divideResult.result);
+println("Divide Error:", divideResult.error?.message);
+
+async function fetchUserData() {
+  return { id: 1, name: "Kizz", role: "Developer" };
+}
+
+const asyncResult = await safeTry(fetchUserData);
+println("Async Result:", asyncResult.result);
+
+async function fetchFailingData() {
+  throw new Error("Network timeout");
+}
+
+const asyncErrorResult = await safeTry(fetchFailingData);
+println("Async Error:", asyncErrorResult.error?.message);
+
+try {
+  await safeTry(() => {
+    throw new Error("Critical failure!");
+  }, { throw: true });
+} catch (e) {
+  println("Caught:", (e as Error).message);
+}
+
+const configValue = await safeTry(() => {
+  const config = { port: 3000, host: "localhost" };
+  return config.port;
+});
+
+const port = configValue.result ?? 8080;
+println("Using port:", port);

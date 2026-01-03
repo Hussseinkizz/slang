@@ -97,5 +97,7 @@ Always examine existing codebase patterns before implementing new solutions - us
 - Never rush to implementing or changing things while we still working, I have to approve first.
 - Never use git without my supervision, always ask me before any git commands.
 - Never install packages, package linking, publishing or project setup stuff, mono repo setting or stuff like so without my approval.
+- Never put stupid comments or markers that are not called for, most preffered is code to speak for itself, be pragmatic and declarative.
+- Don't be so literal, just because your working on a todo doesn't mean comments like todo list, or exposing technical details just because a certain technicality is used internally i.e saying "this is an async function" etc.
 
 Always remember these rules before working on any new tasks.

@@ -19,17 +19,17 @@ npm i slang-ts
 - [x] Expect
 - [x] Unwrap (on Option)
 - [x] Else (on unwrap)
-- [ ] Panic!
+- [x] Panic
 - [x] Zip, Unzip, zipWith
-- [ ] Try
-- [ ] Catch
+- [x] SafeTry
 - [x] Match
 - [x] MatchAll
 - [ ] Pipe
+- [x] SafeTry
 - [ ] Map
 - [x] To (converters, e.g. `userAtom.to('option')`)
 - [ ] Promises and async utilities
-- [ ] Curry
+- [ ] Currys
 
 ## Others (Planned)
 
@@ -294,6 +294,47 @@ const arr2 = [4, 5, 6];
 const zipped = zip([arr1, arr2]);
 println(unzip(zipped));
 // [[1, 2, 3], [4, 5, 6]]
+```
+
+### SafeTry
+
+Wraps potentially error throwing functions in try-catch, and returns a predictable `{ result, error }`. And always needs to be awaited as its async.
+
+```ts
+import { safeTry } from "slang-ts";
+
+const { result, error } = await safeTry(() => {
+  if (denom === 0) throw new Error("Cannot divide by zero");
+  return num / denom;
+});
+
+const data = await safeTry(async () => {
+  const res = await fetch("/api/user");
+  return res.json();
+});
+
+// Re-throw critical errors
+await safeTry(() => {
+  throw new Error("Critical!");
+}, { throw: true });
+
+```
+
+### Panic
+
+Throws an error immediately. Use for unrecoverable failures.
+
+```ts
+import { panic } from "slang-ts";
+
+function processUser(user: User | null) {
+  if (!user) panic("User cannot be null");
+  return user.name;
+}
+
+// Guard clause pattern
+const config = loadConfig();
+if (!config.apiKey) panic("API key required");
 ```
 
 And more are to be implemented in coming versions...

@@ -643,3 +643,73 @@ export function unzip<T>(zipped: T[][]): T[][] {
   }
   return result;
 }
+
+/**
+ * Result type for safeTry operation.
+ * Contains either a successful result or an error.
+ */
+export type SafeTryResult<T> = {
+  result: T | null;
+  error: Error | null;
+};
+
+/**
+ * Options for safeTry behavior.
+ */
+type SafeTryOptions = {
+  /** If true, re-throws the error instead of capturing it */
+  throw?: boolean;
+};
+
+/**
+ * Wraps a function in try-catch, returns `{ result, error }`.
+ * - Always returns a Promise, internally awaits the function.
+ * - Use `{ throw: true }` to re-throw errors.
+ *
+ * @param fn - Function to execute
+ * @param options - `{ throw?: boolean }`
+ * @returns Promise of `{ result, error }`
+ *
+ * @example
+ * const { result, error } = await safeTry(() => "Hello");
+ *
+ * @example
+ * const { result, error } = await safeTry(() => {
+ *   throw new Error("Oops!");
+ * });
+ *
+ * @example
+ * await safeTry(() => { throw new Error("Fail"); }, { throw: true });
+ */
+export async function safeTry<T>(
+  fn: () => T | Promise<T>,
+  options?: SafeTryOptions,
+): Promise<SafeTryResult<T>> {
+  const shouldThrow = options?.throw ?? false;
+
+  try {
+    const result = await fn();
+    return {
+      result,
+      error: null,
+    };
+  } catch (error) {
+    if (shouldThrow) {
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+    return {
+      result: null,
+      error: error instanceof Error ? error : new Error(String(error)),
+    };
+  }
+}
+
+/**
+ * Throws an error immediately.
+ * @param message - Error message
+ * @example
+ * panic("Critical!");
+ */
+export function panic(message: string): never {
+  throw new Error(message);
+}
